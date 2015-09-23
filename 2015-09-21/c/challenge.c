@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 
 #define MAX_LINE 40
 
@@ -55,24 +56,34 @@ void draw_box(int floor, int column, char **output) {
     bool left_is_below = has_left && output[row][small_column] == '|';
 
     if(is_below) {
-        if(left_is_below){
-            memcpy(output[row] + small_column, "    |", sizeof(char) * 5);
-        } else if (has_left) {
-            memcpy(output[row] + small_column, "+   |", sizeof(char) * 5);
-        } else {
-            memcpy(output[row] + small_column, "|   |", sizeof(char) * 5);
-        }
-    } else if (has_left && !left_is_below) {
-        memcpy(output[row] + small_column, "----+", sizeof(char) * 5);
+        memcpy(output[row] + small_column + 1, "   |", sizeof(char) * 4);
     } else {
-        memcpy(output[row] + small_column, "+---+", sizeof(char) * 5);
+        memcpy(output[row] + small_column + 1, "---+", sizeof(char) * 4);
     }
+    memcpy(output[row - 1] + small_column + 1, "   |", sizeof(char) * 4);
+    if(rand() % 2) {
+            output[row - 1][small_column + 2] = 'o';
+    }
+    memcpy(output[row - 2] + small_column + 1, "---+", sizeof(char) * 4);
+
     if(has_left) {
-        memcpy(output[row - 1] + small_column, "    |", sizeof(char) * 5);
-        memcpy(output[row - 2] + small_column, "----+", sizeof(char) * 5);
+        if(left_is_below && is_below) {
+            output[row][small_column] = ' ';
+        } else if(left_is_below || is_below){
+            output[row][small_column] = '+';
+        } else {
+            output[row][small_column] = '-';
+        }
+        output[row - 1][small_column] = ' ';
+        output[row - 2][small_column] = '-';
     } else {
-        memcpy(output[row - 1] + small_column, "|   |", sizeof(char) * 5);
-        memcpy(output[row - 2] + small_column, "+---+", sizeof(char) * 5);
+        if(is_below) {
+            output[row][small_column] = '|';
+        } else {
+            output[row][small_column] = '+';
+        }
+        output[row - 1][small_column] = '|';
+        output[row - 2][small_column] = '+';
     }
 }
 
@@ -80,6 +91,7 @@ int main() {
     char **output;
     char buffer[MAX_LINE];
     int height;
+    srand(time(NULL));
 
     height = atoi(get_line(buffer, MAX_LINE));
 
@@ -87,9 +99,10 @@ int main() {
 
     printf("height: %d\n", height);
 
+    int column = 0;
     for(int floor = height; floor > 0; floor--){
         char c;
-        int column = 0;
+        column = 0;
         while((c = getc(stdin)) != '\n' && c != EOF) {
             if(c == '*') {
                 draw_box(floor, column, output);
@@ -99,6 +112,7 @@ int main() {
             column++;
         }
     }
+    memcpy(output[1] + (rand() % column) * 4 + 1, "| |", sizeof(char) * 3);
 
     draw_house(output, height);
 }
