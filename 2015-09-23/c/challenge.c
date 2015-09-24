@@ -70,8 +70,6 @@ void insert_0(char *dest, int width, int height) {
     }
 }
 
-void print(char *buff, int width, int height);
-
 void init_board(char **current, char **next, int *width, int *height, char *filename) {
     off_t in_size = 0;
     char *buff = copy_input(filename, &in_size);
