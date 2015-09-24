@@ -3,9 +3,9 @@
 #include <string.h>
 #include <stdbool.h>
 #include <time.h>
-#include <alloca.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define ANIMATE 1
 
@@ -70,15 +70,25 @@ void insert_0(char *dest, int width, int height) {
     }
 }
 
+void *null_check_malloc(size_t size) {
+    void *tmp = malloc(size);
+    if(tmp == NULL) {
+        perror("Error alocating memmory");
+        exit(1);
+    } else {
+        return tmp;
+    }
+}
+
 void init_board(char **current, char **next, int *width, int *height, char *filename) {
     off_t in_size = 0;
     char *buff = copy_input(filename, &in_size);
 
     scan(buff, width, height);
 
-    int size = *height * (*width + 1);
-    *current = malloc(size);
-    *next = malloc(size);
+    size_t size = *height * (*width + 1);
+    *current = null_check_malloc(size);
+    *next = null_check_malloc(size);
     memset(*current, ' ', size);
 
     copy(buff, *current, *width);
@@ -128,8 +138,7 @@ void get_neighbours(char *neighbours, char *current, int row, int col, int width
 }
 
 char get_next(char *current, int row, int col, int width, int height) {
-    char *neighbours = alloca(9);
-    memset(neighbours, '\0', 9);
+    char neighbours[9] = "\0\0\0\0\0\0\0\0\0";
     get_neighbours(neighbours, current, row, col, width, height);
 //    printf("(%d, %d): ", row, col);
 //    puts(neighbours);
