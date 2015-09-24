@@ -1,25 +1,25 @@
-#include <stdio.h> 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <time.h>
+#include <alloca.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #define ANIMATE 1
 
-static long in_size = 0;
-
-char *read(char* name) {
+char *copy_input(char *name, off_t *in_size) {
     FILE *in = fopen(name, "rb");
-    if (in!=NULL) {
+    if(in != NULL) {
         fseek(in, 0L, SEEK_END);
-        in_size = ftell(in);
+        *in_size = ftello(in);
         rewind(in);
-        char *buff = (char*) mmap(NULL, in_size, PROT_READ, MAP_PRIVATE, fileno(in), 0);
-        fclose (in);
+        char *buff = mmap(NULL, *in_size, PROT_READ, MAP_PRIVATE, fileno(in), 0);
+        fclose(in);
         return buff;
     } else {
-        fputs("Error opening file", stderr);
+        fputs("Error opening file\n", stderr);
         return NULL;
     }
 }
@@ -46,7 +46,7 @@ void scan(char *buff, int *width, int *height) {
     }
 }
 
-void copy(char* buff, char* dest, int line_width) {
+void copy(char *buff, char *dest, int line_width) {
     int i = 0;
     while(*buff && (*(dest) = *(buff++))) {
         if(*dest == '\n') {
@@ -60,8 +60,33 @@ void copy(char* buff, char* dest, int line_width) {
     }
 }
 
+char *get(char *buff, int row, int col, int width) {
+    return buff + row * (width + 1) + col;
+}
+
 void insert_0(char *dest, int width, int height) {
-    while((*(dest + (height) * (width + 1) - 1) = '\0') || height--) ;
+    for(unsigned i = 0; i < height; i++) {
+        *get(dest, i, width, width) = '\0';
+    }
+}
+
+void print(char *buff, int width, int height);
+
+void init_board(char **current, char **next, int *width, int *height, char *filename) {
+    off_t in_size = 0;
+    char *buff = copy_input(filename, &in_size);
+
+    scan(buff, width, height);
+
+    int size = *height * (*width + 1);
+    *current = malloc(size);
+    *next = malloc(size);
+    memset(*current, ' ', size);
+
+    copy(buff, *current, *width);
+    munmap(buff, in_size);
+    insert_0(*current, *width, *height);
+    insert_0(*next, *width, *height);
 }
 
 void print(char *buff, int width, int height) {
@@ -70,10 +95,6 @@ void print(char *buff, int width, int height) {
         puts(it);
         it += width + 1;
     }
-}
-
-char *get(char *buff, int row, int col, int width) {
-    return buff + row * (width + 1) + col;
 }
 
 void get_neighbours(char *neighbours, char *current, int row, int col, int width, int height) {
@@ -107,8 +128,10 @@ void get_neighbours(char *neighbours, char *current, int row, int col, int width
         }
     }
 }
+
 char get_next(char *current, int row, int col, int width, int height) {
-    char *neighbours = calloc(9, sizeof(char));
+    char *neighbours = alloca(9);
+    memset(neighbours, '\0', 9);
     get_neighbours(neighbours, current, row, col, width, height);
 //    printf("(%d, %d): ", row, col);
 //    puts(neighbours);
@@ -116,56 +139,45 @@ char get_next(char *current, int row, int col, int width, int height) {
     int n = strlen(neighbours);
 
     char cell = *get(current, row , col, width);
-    char newborn = neighbours[rand() % 3];
-    free(neighbours);
 
     if(n < 2 || n > 3) {
         return ' ';
     } else if(n == 3 && cell == ' ') {
-        return newborn;
+        return neighbours[rand() % 3];
     } else {
         return cell;
     }
 }
 
 void live(char *current, char *next, int width, int height) {
-    for(int row = 0; row < height; row++) {
-        for(int col = 0; col < width; col++) {
+    for(unsigned row = 0; row < height; row++) {
+        for(unsigned col = 0; col < width; col++) {
             *get(next, row, col, width) = get_next(current, row, col, width, height);
         }
     }
 }
 
 int main(int argc, char **argv) {
-    char *current;
-    char *next;
+    char *current, *next;
+    int width, height;
     srand(time(NULL));
 
-    char *buff = read(argv[1]);
-
-    int width, height;
-    scan(buff, &width, &height);
-
-    int  size = height * width + height;
-    current = malloc(size);
-    next = malloc(size);
-    memset(current, ' ', size);
-
-    copy(buff, current, width);
-    munmap(buff, in_size);
-    insert_0(current, width, height);
-    insert_0(next, width, height);
+    if(argc < 2) {
+        fputs("Please provide input file as argument.\n", stderr);
+        return 1;
+    }
+    init_board(&current, &next, &width, &height, argv[1]);
 
 //    print(current, width, height);
     live(current, next, width, height);
     print(next, width, height);
 #if ANIMATE
     while(true) {
-        buff = next;
+        char *tmp = next;
         next = current;
-        current = buff;
+        current = tmp;
 
-        nanosleep((const struct timespec[]){{0, 1000L*1000L*1000L/10}}, NULL);
+        usleep(100 * 1000);
         live(current, next, width, height);
         printf("\033[2J\033[1;1H");
         print(next, width, height);
