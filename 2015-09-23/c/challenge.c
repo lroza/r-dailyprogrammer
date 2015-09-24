@@ -136,7 +136,7 @@ char get_next(char *current, int row, int col, int width, int height) {
 //    printf("(%d, %d): ", row, col);
 //    puts(neighbours);
 
-    int n = strlen(neighbours);
+    size_t n = strlen(neighbours);
 
     char cell = *get(current, row , col, width);
 
