@@ -5,23 +5,21 @@
 #include <time.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include <errno.h>
+#include <err.h>
 
 #define ANIMATE 1
 
 char *copy_input(char *name, off_t *in_size) {
     FILE *in = fopen(name, "rb");
     if(in == NULL) {
-        perror("Error opening file");
-        exit(1);
+        err(1, "Error opening file");
     }
     fseek(in, 0L, SEEK_END);
     *in_size = ftello(in);
     rewind(in);
     char *buff = mmap(NULL, *in_size, PROT_READ, MAP_PRIVATE, fileno(in), 0);
     if(buff == NULL) {
-        perror("Error mapping file");
-        exit(1);
+        err(1, "Error mapping file");
     }
     fclose(in);
     return buff;
@@ -69,8 +67,7 @@ void insert_0(char *dest, unsigned width, unsigned height) {
 void *null_check_malloc(size_t size) {
     void *tmp = malloc(size);
     if(tmp == NULL) {
-        perror("Error alocating memmory");
-        exit(1);
+        err(1, "Error alocating memmory");
     } else {
         return tmp;
     }
@@ -134,7 +131,7 @@ void get_neighbours(char *neighbours, char *current, unsigned row, unsigned col,
 }
 
 char get_next(char *current, unsigned row, unsigned col, unsigned width, unsigned height) {
-    char neighbours[9] = "\0\0\0\0\0\0\0\0\0";
+    char neighbours[9] = { 0 };
     get_neighbours(neighbours, current, row, col, width, height);
 //    printf("(%d, %d): ", row, col);
 //    puts(neighbours);
