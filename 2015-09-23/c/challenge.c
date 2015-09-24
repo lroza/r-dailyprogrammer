@@ -11,17 +11,20 @@
 
 char *copy_input(char *name, off_t *in_size) {
     FILE *in = fopen(name, "rb");
-    if(in != NULL) {
-        fseek(in, 0L, SEEK_END);
-        *in_size = ftello(in);
-        rewind(in);
-        char *buff = mmap(NULL, *in_size, PROT_READ, MAP_PRIVATE, fileno(in), 0);
-        fclose(in);
-        return buff;
-    } else {
-        fputs("Error opening file\n", stderr);
-        return NULL;
+    if(in == NULL) {
+        perror("Error opening file");
+        exit(1);
     }
+    fseek(in, 0L, SEEK_END);
+    *in_size = ftello(in);
+    rewind(in);
+    char *buff = mmap(NULL, *in_size, PROT_READ, MAP_PRIVATE, fileno(in), 0);
+    if(buff == NULL) {
+        perror("Error mapping file");
+        exit(1);
+    }
+    fclose(in);
+    return buff;
 }
 
 void scan(char *buff, int *width, int *height) {
