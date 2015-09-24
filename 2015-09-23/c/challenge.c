@@ -27,30 +27,23 @@ char *copy_input(char *name, off_t *in_size) {
     return buff;
 }
 
-void scan(char *buff, int *width, int *height) {
-    char c;
+void scan(char *buff, unsigned *width, unsigned *height) {
     *width = 0;
     *height = 1;
-    int i = 0;
+    char *ptr;
 
-    while((c = *(buff++))) {
-        if(c == '\n') {
-            (*height)++;
-            if(i > *width) {
-                *width = i;
-            }
-            i = 0;
-        } else {
-            i++;
-        }
+    while((ptr = strchr(buff, '\n'))) {
+        (*height)++;
+        unsigned tmp = ptr - buff;
+        *width = tmp > *width ? tmp : *width;
+        buff = ptr + 1;
     }
-    if(i > *width) {
-        *width = i;
-    }
+    size_t tmp = strlen(buff);
+    *width = tmp > *width ? tmp : *width;
 }
 
-void copy(char *buff, char *dest, int line_width) {
-    int i = 0;
+void copy(char *buff, char *dest, unsigned line_width) {
+    unsigned i = 0;
     while(*buff && (*(dest) = *(buff++))) {
         if(*dest == '\n') {
             *dest = ' ';
@@ -63,11 +56,11 @@ void copy(char *buff, char *dest, int line_width) {
     }
 }
 
-char *get(char *buff, int row, int col, int width) {
+char *get(char *buff, unsigned row, unsigned col, unsigned width) {
     return buff + row * (width + 1) + col;
 }
 
-void insert_0(char *dest, int width, int height) {
+void insert_0(char *dest, unsigned width, unsigned height) {
     for(unsigned i = 0; i < height; i++) {
         *get(dest, i, width, width) = '\0';
     }
@@ -83,7 +76,7 @@ void *null_check_malloc(size_t size) {
     }
 }
 
-void init_board(char **current, char **next, int *width, int *height, char *filename) {
+void init_board(char **current, char **next, unsigned *width, unsigned *height, char *filename) {
     off_t in_size = 0;
     char *buff = copy_input(filename, &in_size);
 
@@ -100,7 +93,7 @@ void init_board(char **current, char **next, int *width, int *height, char *file
     insert_0(*next, *width, *height);
 }
 
-void print(char *buff, int width, int height) {
+void print(char *buff, unsigned width, unsigned height) {
     char *it = buff;
     while(it < buff + height * width + height) {
         puts(it);
@@ -108,7 +101,7 @@ void print(char *buff, int width, int height) {
     }
 }
 
-void get_neighbours(char *neighbours, char *current, int row, int col, int width, int height) {
+void get_neighbours(char *neighbours, char *current, unsigned row, unsigned col, unsigned width, unsigned height) {
     char  c;
     if(row > 0) {
         if(col > 0 && (c = *get(current, row - 1, col - 1, width)) != ' ') {
@@ -140,7 +133,7 @@ void get_neighbours(char *neighbours, char *current, int row, int col, int width
     }
 }
 
-char get_next(char *current, int row, int col, int width, int height) {
+char get_next(char *current, unsigned row, unsigned col, unsigned width, unsigned height) {
     char neighbours[9] = "\0\0\0\0\0\0\0\0\0";
     get_neighbours(neighbours, current, row, col, width, height);
 //    printf("(%d, %d): ", row, col);
@@ -159,7 +152,7 @@ char get_next(char *current, int row, int col, int width, int height) {
     }
 }
 
-void live(char *current, char *next, int width, int height) {
+void live(char *current, char *next, unsigned width, unsigned height) {
     for(unsigned row = 0; row < height; row++) {
         for(unsigned col = 0; col < width; col++) {
             *get(next, row, col, width) = get_next(current, row, col, width, height);
@@ -169,7 +162,7 @@ void live(char *current, char *next, int width, int height) {
 
 int main(int argc, char **argv) {
     char *current, *next;
-    int width, height;
+    unsigned width, height;
     srand(time(NULL));
 
     if(argc < 2) {
